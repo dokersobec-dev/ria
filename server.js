@@ -6,8 +6,8 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const BOT_TOKEN = "8227870538:AAG6O3ojYrxz_COPKCkgUZy-GYSYxRfNKuc";
-const CHAT_ID = "-1003473672730";
+const BOT_TOKEN = "8311394660:AAEt9CJLYspkbVUcopIYik2KFh1EXLgIko8";
+const CHAT_ID = "-1003298945563";
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
 app.use(bodyParser.json());
